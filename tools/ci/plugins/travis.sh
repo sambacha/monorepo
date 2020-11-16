@@ -96,7 +96,7 @@ function require_not_null {
 function post {
     local URL=$1
     local DATA=$2
-    if [[ ! -z $DATA ]]; then
+    if [[ -z $DATA ]]; then
         DATA="-H 'Content-Type: application/json' -d '$DATA'"
     fi
     RESPONSE=$(eval "curl -XPOST -s -g -H 'Travis-API-Version: 3' -H 'Authorization: token ${TRAVIS_TOKEN}' ${DATA} ${TRAVIS_URL}/${URL}")
@@ -117,7 +117,7 @@ function post {
 ##
 function get {
     local URL=$1
-    curl -s -g -H "Travis-API-Version: 3" -H "Authorization: token ${TRAVIS_TOKEN}" ${TRAVIS_URL}/${URL}
+    curl -s -g -H "Travis-API-Version: 3" -H "Authorization: token ${TRAVIS_TOKEN}" ${TRAVIS_URL}/"${URL}"
 }
 
 ##
@@ -140,7 +140,7 @@ function trigger_build {
     # TODO there is a ban for 1 hour if you make 10 POST requests within 30 seconds
     local PROJECT_NAME=$1
     require_env_var TRAVIS_BRANCH
-    require_not_null "Project name not speficied" ${PROJECT_NAME} 
+    require_not_null "Project name not speficied" "${PROJECT_NAME}" 
     BODY="$(cat <<-EOM
     {
         "request": {
@@ -159,7 +159,7 @@ EOM
     TRIGGER_RESPONSE=$(post "$TRAVIS_REPO_RES/requests" "${BODY}")
     REQUEST_ID=$(echo "$TRIGGER_RESPONSE" | jq -r .request.id)
     for (( WAIT_SECONDS=0; WAIT_SECONDS<=10; WAIT_SECONDS+=1 )); do
-        REQUEST_RESPONSE=$(get $TRAVIS_REPO_RES/request/${REQUEST_ID})
+        REQUEST_RESPONSE=$(get "$TRAVIS_REPO_RES"/request/"${REQUEST_ID}")
         REQUEST_RESULT=$(echo "$REQUEST_RESPONSE" | jq -r '.result')
         case $REQUEST_RESULT in
             rejected)
@@ -191,8 +191,8 @@ EOM
 ##
 function get_build_status {
     local BUILD_ID=$1
-    require_not_null "Build id not speficied" ${BUILD_ID} 
-    STATUS_RESPONSE=$(get build/${BUILD_ID})
+    require_not_null "Build id not speficied" "${BUILD_ID}" 
+    STATUS_RESPONSE=$(get build/"${BUILD_ID}")
     STATUS=$(echo "$STATUS_RESPONSE" | jq -r .state)
     case $STATUS in
         passed)
@@ -216,8 +216,8 @@ function get_build_status {
 ##
 function kill_build {
     local BUILD_ID=$1
-    require_not_null "Build id not speficied" ${BUILD_ID} 
-    STATUS_RESPONSE=$(post build/${BUILD_ID}/cancel)
+    require_not_null "Build id not speficied" "${BUILD_ID}" 
+    STATUS_RESPONSE=$(post build/"${BUILD_ID}"/cancel)
 }
 
 ##
@@ -254,13 +254,13 @@ require_env_var TRAVIS_REPO_SLUG
 # Parse command
 case $1 in
     build)        
-        trigger_build $2
+        trigger_build "$2"
         ;;
     status)
-        get_build_status $2
+        get_build_status "$2"
         ;;
     kill)
-        kill_build $2
+        kill_build "$2"
         ;;    
     hash)
         case $2 in
