@@ -17,6 +17,6 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Just resolve all patterns in projects file
-for PROJECT in $(cat ${DIR}/../projects.txt); do 
-	echo ${PROJECT} 
+for PROJECT in $("cat ${DIR}/../projects.txt"); do 
+	echo "${PROJECT}"
 done
