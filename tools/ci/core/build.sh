@@ -33,7 +33,7 @@ if [[ -f $(git rev-parse --git-dir)/shallow ]]; then
         git fetch --unshallow
     else 
         DEPTH=1
-        until git show ${LAST_SUCCESSFUL_COMMIT} > /dev/null 2>&1
+        until git show "${LAST_SUCCESSFUL_COMMIT}" > /dev/null 2>&1
         do
             DEPTH=$((DEPTH+5))
             echo "Last commit not fetched yet. Fetching depth $DEPTH."
@@ -43,7 +43,7 @@ if [[ -f $(git rev-parse --git-dir)/shallow ]]; then
 fi
 
 # Collect all modified projects
-PROJECTS_TO_BUILD=$($DIR/list-projects-to-build.sh $COMMIT_RANGE)
+PROJECTS_TO_BUILD=$("$DIR"/list-projects-to-build.sh "$COMMIT_RANGE")
 
 # If nothing to build inform and exit
 if [[ -z "$PROJECTS_TO_BUILD" ]]; then
@@ -55,6 +55,6 @@ echo "Following projects need to be built"
 echo -e "$PROJECTS_TO_BUILD"
 
 # Build all modified projects
-echo -e "$PROJECTS_TO_BUILD" | while read PROJECTS; do
-    CI_PLUGIN=${CI_PLUGIN} $DIR/build-projects.sh ${PROJECTS}
+echo -e "$PROJECTS_TO_BUILD" | while read -r PROJECTS; do
+    CI_PLUGIN=${CI_PLUGIN} "$DIR"/build-projects.sh "${PROJECTS}"
 done;
