@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1003
 
-
-# Based on https://gist.github.com/pkuczynski/8665367
-
 parse_yaml() {
     local yaml_file=$1
     local prefix=$2
@@ -49,14 +46,14 @@ parse_yaml() {
 
 unset_variables() {
   # Pulls out the variable names and unsets them.
-  local variable_string="$@"
+  local variable_string="$*"
   unset variables
   variables=()
-  for variable in ${variable_string[@]}; do
-    variables+=($(echo $variable | grep '=' | sed 's/=.*//' | sed 's/+.*//'))
+  for variable in "${variable_string[@]}"; do
+    variables+=($(echo "$variable" | grep '=' | sed 's/=.*//' | sed 's/+.*//'))
   done
-  for variable in ${variables[@]}; do
-    unset $variable
+  for variable in "${variables[@]}"; do
+    unset "$variable"
   done
 }
 
@@ -64,6 +61,6 @@ create_variables() {
     local yaml_file="$1"
     local prefix="$2"
     local yaml_string="$(parse_yaml "$yaml_file" "$prefix")"
-    unset_variables ${yaml_string[@]}
+    unset_variables "${yaml_string[@]}"
     eval "${yaml_string}"
 }
