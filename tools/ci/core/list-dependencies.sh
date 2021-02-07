@@ -28,11 +28,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 : "${CI_DEPENDENCIES_FILE:=.ci/dependencies.txt}"
 
 # Look for dependecies of each project
-for PROJECT in $(${DIR}/list-projects.sh); do   
+for PROJECT in $("${DIR}/list-projects.sh"); do   
 
     # If project contain `includeBuild` function in any of it's *.gradle file
     # then there is dependency on included project
-    grep --include=\*.gradle -rwh "$DIR/../../../$PROJECT" -e "includeBuild" | while read INCLUDE; do
+    grep --include=\*.gradle -rwh "$DIR/../../../$PROJECT" -e "includeBuild" | while read -r INCLUDE; do
         INCLUDE=$(echo "$INCLUDE" | sed -r -n "s/^.*['\"](.*?)['\"].*$/\1/p")
         INCLUDE=$(realpath --relative-to="$DIR/../../.." "$DIR/../../../$PROJECT/$INCLUDE")
         echo "$PROJECT $INCLUDE"
@@ -41,7 +41,7 @@ for PROJECT in $(${DIR}/list-projects.sh); do
     # Additionaly look into dependency file where each row is path to other project
     DEPENDENCIES_FILE="$DIR/../../../$PROJECT/$CI_DEPENDENCIES_FILE"
     if [[ -f $DEPENDENCIES_FILE ]]; then
-        for INCLUDE in $(cat $DEPENDENCIES_FILE); do 
+        for INCLUDE in $("cat $DEPENDENCIES_FILE"); do 
             echo "$PROJECT $INCLUDE"
         done
     fi

@@ -1,0 +1,6 @@
+---
+build_file:
+- apps/*
+- libs/*
+- tools/gradle-plugins/*
+  

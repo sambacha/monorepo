@@ -93,7 +93,7 @@ function require_not_null {
 function post {
     local URL=$1
     local DATA=$2
-    if [[ ! -z $DATA ]]; then
+    if [[ -n $DATA ]]; then
         DATA="-H 'Content-Type: application/json' -d '$DATA'"
     fi
     eval "curl -XPOST -s -g -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${GITHUB_TOKEN}' ${DATA} ${GITHUB_URL}/${URL}"
@@ -107,7 +107,7 @@ function post {
 ##
 function get {
     local URL=$1
-    curl -s -g -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${GITHUB_TOKEN}" ${GITHUB_URL}/${URL}
+    curl -s -g -H "Accept: application/vnd.github.v3+json" -H "Authorization: token ${GITHUB_TOKEN}" "${GITHUB_URL}"/"${URL}"
 }
 
 ##
@@ -120,7 +120,7 @@ function get_branch {
     if [[ -n "$1" ]]; then
         require_env_var GITHUB_REF
     fi
-    echo ${GITHUB_REF##*/}
+    echo "${GITHUB_REF##*/}"
 }
 
 ##
@@ -142,7 +142,7 @@ function get_branch {
 ##
 function trigger_build {
     local PROJECT_NAME=$1
-    require_not_null "Project name not speficied" ${PROJECT_NAME} 
+    require_not_null "Project name not speficied" "${PROJECT_NAME}" 
     BRANCH=$(get_branch required)
     NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     BODY="$(cat <<-EOM
@@ -156,11 +156,11 @@ EOM
     )"
     post dispatches "${BODY}"
     for (( WAIT_SECONDS=0; WAIT_SECONDS<=5; WAIT_SECONDS+=1 )); do
-        WFS=$(get 'actions/runs?event=repository_dispatch' | jq '[ .workflow_runs[] | select(.created_at > "'${NOW}'" and .head_branch == "'${BRANCH}'") ]')
+        WFS=$(get 'actions/runs?event=repository_dispatch' | jq '[ .workflow_runs[] | select(.created_at > "'"${NOW}"'" and .head_branch == "'"${BRANCH}"'") ]')
         ID='null'
         for JOBS_URL in $(echo "$WFS" | jq -r 'map(.jobs_url) | .[]'); do 
             JOBS_URL=${JOBS_URL/$GITHUB_URL/}
-            ID=$(get ${JOBS_URL:1} | jq '[ .jobs[] | select(.name == "'${PROJECT_NAME}'") ] | map(.run_id) | .[0]')
+            ID=$(get "${JOBS_URL:1}" | jq '[ .jobs[] | select(.name == "'"${PROJECT_NAME}"'") ] | map(.run_id) | .[0]')
             if [[ ${ID} != 'null' ]]; then 
                 break
             fi
@@ -168,7 +168,7 @@ EOM
         if [[ ${ID} == 'null' ]]; then 
             sleep 1
         else
-            echo ${ID}
+            echo "${ID}"
             return
         fi
     done
@@ -186,8 +186,8 @@ EOM
 ##
 function get_build_status {
     local BUILD_ID=$1
-    require_not_null "Build id not speficied" ${BUILD_ID} 
-    STATUS_RESPONSE=$(get actions/runs/${BUILD_ID})
+    require_not_null "Build id not speficied" "${BUILD_ID}" 
+    STATUS_RESPONSE=$(get actions/runs/"${BUILD_ID}")
     STATUS=$(echo "$STATUS_RESPONSE" | jq -r .conclusion)
     case $STATUS in
         success)
@@ -214,8 +214,8 @@ function get_build_status {
 ##
 function kill_build {
     local BUILD_ID=$1
-    require_not_null "Build id not speficied" ${BUILD_ID} 
-    STATUS_RESPONSE=$(post actions/runs/${BUILD_ID}/cancel)
+    require_not_null "Build id not speficied" "${BUILD_ID}" 
+    STATUS_RESPONSE=$(post actions/runs/"${BUILD_ID}"/cancel)
 }
 
 ##
@@ -255,13 +255,13 @@ require_env_var GITHUB_TOKEN
 # Parse command
 case $1 in
     build)        
-        trigger_build $2
+        trigger_build "$2"
         ;;
     status)
-        get_build_status $2
+        get_build_status "$2"
         ;;
     kill)
-        kill_build $2
+        kill_build "$2"
         ;;    
     hash)
         case $2 in

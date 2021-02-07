@@ -36,19 +36,23 @@ fi
 
 # Trigger build for all given projects
 PROJECTS=()
-for PROJECT in $@; do
+for PROJECT in "$@"; do
     echo "Triggering build for project '$PROJECT'"
-    PROJECT_NAME=$(basename $PROJECT)
-    BUILD_NUM=$(${CI_PLUGIN} build $PROJECT_NAME)    
+    PROJECT_NAME=$(basename "$PROJECT")
+    BUILD_NUM=$(${CI_PLUGIN} build "$PROJECT_NAME")    
+    
+    #shellcheck disable=SC2154
     if [[ -z ${BUILD_NUM} ]] || [[ ${BUILD_NUM} -eq "null" ]]; then
         echo "WARN: No build triggered for project '$PROJECT'. Please check if pipeline is defined in your build tool."
     else 
         echo "Build triggered for project '$PROJECT' with number '$BUILD_NUM'"    
-        PROJECTS=(${PROJECTS[@]} "$PROJECT,$BUILD_NUM,null")
+        PROJECTS=(  read -a "${PROJECTS[@]}" "$PROJECT,$BUILD_NUM,null")
     fi
 done;
 
 # Check build status loop
+
+#shellcehck disable=SC2004
 for (( BUILD_SECONDS=0; BUILD_SECONDS<=${BUILD_MAX_SECONDS}; BUILD_SECONDS+=$BUILD_CHECK_AFTER_SECONDS )); do
 
     # First request status for all not yet finished builds
@@ -58,7 +62,7 @@ for (( BUILD_SECONDS=0; BUILD_SECONDS<=${BUILD_MAX_SECONDS}; BUILD_SECONDS+=$BUI
         BUILD_NUM=$(echo "$PROJECT_INFO" | cut -d "," -f2)    
         BUILD_OUTCOME=$(echo "$PROJECT_INFO" | cut -d "," -f3)
         if [[ "$BUILD_OUTCOME" == "null" ]]; then            
-            BUILD_OUTCOME=$(${CI_PLUGIN} status ${BUILD_NUM})
+            BUILD_OUTCOME=$(${CI_PLUGIN} status "${BUILD_NUM}")
             PROJECTS[$PROJECT_INDEX]="$PROJECT,$BUILD_NUM,$BUILD_OUTCOME"
         fi    
     done
@@ -90,23 +94,26 @@ for (( BUILD_SECONDS=0; BUILD_SECONDS<=${BUILD_MAX_SECONDS}; BUILD_SECONDS+=$BUI
 
     # At the end check if all all builds are done
     if [[ ${SUCCESSFUL_COUNT} < ${#PROJECTS[@]} ]]; then
+    #shellcheck disable=SC2116
         for RUNNING in $(echo "$BUILDS_RUNNING"); do 
             echo "Waiting for build $RUNNING..."
         done
         sleep ${BUILD_CHECK_AFTER_SECONDS}        
     else
-        echo "Build successful for all projects: $@"
+        echo "Build successful for all projects: $*"
         exit 0
     fi
 
 done    
 
-echo "Timeout! Some builds were not finished withing $BUILD_MAX_SECONDS seconds."
-echo "Not finished builds:"
-for RUNNING in $(echo "$BUILDS_RUNNING"); do 
-    echo "  $RUNNING"
-    BUILD_NUM=$(echo $RUNNING | sed -r 's/.*\(([0-9]+)\)/\1/')
-    ${CI_PLUGIN} kill ${BUILD_NUM}
+echo -ne "Timeout! Some builds were not finished withing $BUILD_MAX_SECONDS seconds.\n"
+echo -ne  "Not finished builds:"
+  # TODO - Check `prinf` behavior see: https://github.com/koalaman/shellcheck/wiki/SC2059
+  #shellcheck disable=SC2116
+for RUNNING in $(printf  %s" ""$BUILDS_RUNNING \n"); do 
+    printf %s" ""$RUNNING"
+    BUILD_NUM=$(echo "$RUNNING" | sed -r 's/.*\(([0-9]+)\)/\1/')
+    "${CI_PLUGIN}" kill "${BUILD_NUM}"
 done
-echo "All not finished builds were killed"
+echo -ne "Errors are reported, see logfile"
 exit 1

@@ -97,10 +97,10 @@ function require_not_null {
 function post {
     local URL=$1
     local DATA=$2
-    if [[ ! -z $DATA ]]; then
+    if [[ -z $DATA ]]; then
         DATA="-d $DATA"
     fi
-    curl -XPOST -s -u ${CIRCLE_API_USER_TOKEN}: ${DATA} ${CIRCLECI_URL}/${URL}
+    curl -XPOST -s -u "${CIRCLE_API_USER_TOKEN}": "${DATA}" "${CIRCLECI_URL}"/"${URL}"
 }
 
 ##
@@ -111,7 +111,7 @@ function post {
 ##
 function get {
     local URL=$1
-    curl -s -u ${CIRCLE_API_USER_TOKEN}: ${CIRCLECI_URL}/${URL}
+    curl -s -u "${CIRCLE_API_USER_TOKEN}": "${CIRCLECI_URL}"/"${URL}"
 }
 
 ##
@@ -126,7 +126,7 @@ function get {
 function trigger_build {
     local PROJECT_NAME=$1
     require_env_var CIRCLE_BRANCH
-    require_not_null "Project name not speficied" ${PROJECT_NAME} 
+    require_not_null "Project name not speficied" "${PROJECT_NAME}" 
     TRIGGER_RESPONSE=$(post "tree/$CIRCLE_BRANCH" "build_parameters[CIRCLE_JOB]=${PROJECT_NAME}")
     echo "$TRIGGER_RESPONSE" | jq -r '.["build_num"]'
 }
@@ -142,8 +142,8 @@ function trigger_build {
 ##
 function get_build_status {
     local BUILD_NUM=$1
-    require_not_null "Build number not speficied" ${BUILD_NUM} 
-    STATUS_RESPONSE=$(get ${BUILD_NUM})
+    require_not_null "Build number not speficied" "${BUILD_NUM}" 
+    STATUS_RESPONSE=$(get "${BUILD_NUM}")
     echo "$STATUS_RESPONSE" | jq -r '.["outcome"]'
 }
 
@@ -156,8 +156,8 @@ function get_build_status {
 ##
 function kill_build {
     local BUILD_NUM=$1
-    require_not_null "Build number not speficied" ${BUILD_NUM} 
-    STATUS_RESPONSE=$(post ${BUILD_NUM}/cancel)
+    require_not_null "Build number not speficied" "${BUILD_NUM}" 
+    STATUS_RESPONSE=$(post "${BUILD_NUM}"/cancel)
 }
 
 ##
@@ -195,13 +195,13 @@ require_env_var CIRCLE_PROJECT_REPONAME
 # Parse command
 case $1 in
     build)        
-        trigger_build $2
+        trigger_build "$2"
         ;;
     status)
-        get_build_status $2
+        get_build_status "$2"
         ;;
     kill)
-        kill_build $2
+        kill_build "$2"
         ;;    
     hash)
         case $2 in
